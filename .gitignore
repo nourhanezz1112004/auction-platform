@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment files — NEVER commit these
+.env
+ai-service/.env
+
+backend/.env
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Prisma
+# migrations/ MUST be committed to version control. Do NOT ignore it.
+*.db
+*.db-journal
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# AI model artifacts — large binary files, not for git
+ai-service/app/ml/artifacts/*.pkl
+ai-service/data/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Turbo cache
+.turbo/
+
+# pnpm
+# pnpm-lock.yaml

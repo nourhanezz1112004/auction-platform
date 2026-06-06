@@ -1,0 +1,17 @@
+{
+  "name": "auction-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "seed": "pnpm --filter @auction/backend seed"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

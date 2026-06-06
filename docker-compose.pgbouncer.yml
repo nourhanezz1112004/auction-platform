@@ -1,0 +1,38 @@
+# docker-compose.pgbouncer.yml
+# Add PgBouncer as a connection pooler between Node.js and PostgreSQL.
+# Merge into your existing docker-compose.yml or run with:
+#   docker compose -f docker-compose.yml -f docker-compose.pgbouncer.yml up
+
+services:
+  pgbouncer:
+    image: bitnami/pgbouncer:1.22.1
+    restart: unless-stopped
+    ports:
+      - "5433:5432"   # App connects to 5433, PgBouncer forwards to postgres:5432
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: ${POSTGRES_USER:-bidspace}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_DATABASE: ${POSTGRES_DB:-bidspace}
+      PGBOUNCER_POOL_MODE: transaction          # transaction mode for Prisma
+      PGBOUNCER_MAX_CLIENT_CONN: 1000           # max frontend connections
+      PGBOUNCER_DEFAULT_POOL_SIZE: 25           # server connections per db/user pair
+      PGBOUNCER_MIN_POOL_SIZE: 5
+      PGBOUNCER_RESERVE_POOL_SIZE: 5
+      PGBOUNCER_RESERVE_POOL_TIMEOUT: 3
+      PGBOUNCER_LOG_CONNECTIONS: 0
+      PGBOUNCER_LOG_DISCONNECTIONS: 0
+      PGBOUNCER_AUTH_TYPE: scram-sha-256
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bidspace-net
+
+# Update your backend service to use PgBouncer:
+# environment:
+#   DATABASE_URL: postgresql://user:pass@pgbouncer:5432/bidspace
+#
+# IMPORTANT: With transaction pool mode, Prisma needs:
+#   DATABASE_URL="...?pgbouncer=true&connection_limit=1"

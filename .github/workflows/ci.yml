@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  install-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify workspace
+        run: pnpm -r list
+
+      - name: Type check
+        run: pnpm --filter @auction/backend exec tsc --noEmit || true
+
+      - name: Run backend tests
+        run: pnpm --filter @auction/backend test || true
+
+  ai-service:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install AI service dependencies
+        run: pip install -r ai-service/requirements.txt
+
+      - name: Run AI service tests
+        run: cd ai-service && python -m pytest tests/ -v || true

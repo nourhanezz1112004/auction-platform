@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Luxury Gold Gradient -->
+    <linearGradient id="gold" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C59341" />
+      <stop offset="50%" stop-color="#E4B869" />
+      <stop offset="100%" stop-color="#FBF0B9" />
+    </linearGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#245B45" />
+      <stop offset="100%" stop-color="#143427" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Circular/Rounded Premium Forest Green Background -->
+  <rect width="512" height="512" rx="140" fill="url(#bg)" />
+  
+  <!-- Bold Stylized M & Gavel Emblem -->
+  <g fill="url(#gold)">
+    <!-- Left Leg -->
+    <path d="M110 390 V180 c0-22 18-40 40-40 h10 c22 0 40 18 40 40 v210 c0 11-9 20-20 20 h-50 c-11 0-20-9-20-20z" />
+    <!-- Right Leg -->
+    <path d="M312 390 V180 c0-22 18-40 40-40 h10 c22 0 40 18 40 40 v210 c0 11-9 20-20 20 h-50 c-11 0-20-9-20-20z" />
+    
+    <!-- Elegant Center Gavel forming the M's middle section -->
+    <!-- Handle -->
+    <rect x="238" y="210" width="36" height="170" rx="18" transform="rotate(30 256 295)" />
+    <!-- Gavel Head (slanted) -->
+    <rect x="186" y="160" width="140" height="66" rx="14" transform="rotate(-30 256 193)" />
+    <!-- Gavel Sound Stand -->
+    <rect x="176" y="380" width="160" height="32" rx="16" />
+  </g>
+</svg>

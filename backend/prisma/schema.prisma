@@ -1,0 +1,402 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum AuctionStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  outbid
+  won
+  sold
+  flagged
+  info
+  started
+}
+
+enum FraudStatus {
+  pending
+  allow
+  review
+  escalate
+}
+
+// ── Audit enums (added by enhanced) ──────────────────────────────────────────
+
+enum AbGroup {
+  a
+  b
+}
+
+enum AuditAction {
+  // Bid events
+  BID_PLACED
+  BID_REJECTED_FRAUD
+  BID_REJECTED_TOO_LOW
+  BID_REJECTED_AUCTION_CLOSED
+  BID_REJECTED_SELF_BID
+  BID_RETRACTED
+  BID_WINNING
+  BID_OUTBID
+
+  // Auction lifecycle
+  AUCTION_CREATED
+  AUCTION_EXTENDED
+  AUCTION_CLOSED
+  AUCTION_CANCELLED
+  AUCTION_RESERVE_NOT_MET
+
+  // Payment events
+  PAYMENT_INITIATED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  PAYMENT_DISPUTED
+  ESCROW_RELEASED
+  ESCROW_HELD
+
+  // Admin actions
+  ADMIN_BID_OVERRIDE
+  ADMIN_USER_SUSPENDED
+  ADMIN_FRAUD_FLAG
+}
+
+enum AuditEntity {
+  BID
+  AUCTION
+  PAYMENT
+  USER
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  name      String
+  phone     String?
+  bio       String?
+  avatarUrl String?
+  rating    Float     @default(0)
+  abGroup   AbGroup   @default(a)
+  isAdmin   Boolean   @default(false)
+  isCurator Boolean   @default(false)
+  banned    Boolean   @default(false)
+  role      String    @default("USER")  // USER | ADMIN | MODERATOR
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  auctions             Auction[]              @relation("AuctionSeller")
+  wonAuctions          Auction[]              @relation("AuctionWinner")
+  bids                 Bid[]
+  reviews              Review[]
+  payments             Payment[]
+  watchlist            WatchlistItem[]
+  notifications        Notification[]
+  botBlocks            BotBlock[]
+  autobidRegistrations AutobidRegistration[]
+  fcmTokens            FcmToken[]
+  supportTickets       SupportTicket[]
+  auditLogs            AuditLog[]             @relation("AuditActor")
+}
+
+// ─── Auction ──────────────────────────────────────────────────────────────────
+
+model Auction {
+  id            String        @id @default(uuid())
+  title         String
+  description   String
+  sellerId      String
+  category      String
+  startingPrice Float
+  currentPrice  Float
+  reservePrice  Float
+  imageUrls     String[]
+  status        AuctionStatus @default(DRAFT)
+  version       Int           @default(0)
+  startsAt      DateTime
+  endsAt        DateTime
+  createdAt     DateTime      @default(now())
+  deletedAt     DateTime?
+  extensionCount Int          @default(0)  // anti-snipe extension counter
+  embedding     Unsupported("vector(384)")?
+  searchEmbedding Unsupported("vector(384)")?  // sentence-transformers all-MiniLM-L6-v2
+
+  winnerId  String?
+  seller    User            @relation(name: "AuctionSeller", fields: [sellerId], references: [id])
+  winner    User?           @relation(name: "AuctionWinner", fields: [winnerId], references: [id])
+  bids      Bid[]
+  payment   Payment?
+  watchlist WatchlistItem[]
+  reviews   Review[]
+  botBlocks BotBlock[]
+  notifications         Notification[]
+  autobidRegistrations  AutobidRegistration[]
+  shillAlerts           ShillAlert[]
+
+  @@index([status])
+  @@index([status, endsAt])
+  @@index([sellerId])
+}
+
+// ─── Bid ──────────────────────────────────────────────────────────────────────
+
+model Bid {
+  id         String    @id @default(uuid())
+  userId     String
+  auctionId  String
+  amount     Float
+  isAutobid  Boolean   @default(false)
+  isFraud    Boolean   @default(false)
+  fraudScore Float?
+  createdAt  DateTime  @default(now())
+
+  user      User       @relation(fields: [userId], references: [id])
+  auction   Auction    @relation(fields: [auctionId], references: [id])
+  fraudFlag FraudFlag?
+
+  @@index([auctionId])
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
+// ─── Fraud Flag ───────────────────────────────────────────────────────────────
+
+model FraudFlag {
+  id        String      @id @default(uuid())
+  bidId     String      @unique
+  score     Float
+  signals   String[]
+  reason    String
+  reviewed  Boolean     @default(false)
+  status    FraudStatus @default(pending)
+  createdAt DateTime    @default(now())
+
+  bid Bid @relation(fields: [bidId], references: [id])
+}
+
+// ─── Review ───────────────────────────────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(uuid())
+  auctionId String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  @@unique([userId, auctionId])
+}
+
+// ─── Payment ──────────────────────────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(uuid())
+  auctionId       String        @unique
+  buyerId         String
+  amount          Float
+  status          PaymentStatus @default(PENDING)
+  stripeSessionId String?
+  createdAt       DateTime      @default(now())
+
+  buyer   User    @relation(fields: [buyerId], references: [id])
+  auction Auction @relation(fields: [auctionId], references: [id])
+}
+
+// ─── Watchlist ────────────────────────────────────────────────────────────────
+
+model WatchlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  auctionId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  @@unique([userId, auctionId])
+}
+
+// ─── Bot Block ────────────────────────────────────────────────────────────────
+
+model BotBlock {
+  id         String   @id @default(uuid())
+  userId     String
+  auctionId  String
+  confidence Float
+  reason     String
+  createdAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  @@index([userId])
+  @@index([auctionId])
+}
+
+// ─── Notification ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  auctionId String?
+  title     String
+  message   String
+  type      NotificationType @default(info)
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  metadata  Json?            @default("{}")
+  createdAt DateTime         @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  auction Auction? @relation(fields: [auctionId], references: [id])
+
+  @@index([userId])
+  @@index([userId, read])
+}
+
+// ─── AutobidRegistration (enhanced) ──────────────────────────────────────────
+
+model AutobidRegistration {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userId          String
+  auctionId       String
+  maxBudget       Float
+  strategy        String   // conservative | aggressive | sniper | value
+  isActive        Boolean  @default(true)
+  totalBidsPlaced Int      @default(0)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auction Auction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, auctionId])
+  @@index([auctionId, isActive])
+  @@index([userId])
+}
+
+// ─── ShillAlert (enhanced) ────────────────────────────────────────────────────
+
+model ShillAlert {
+  id                  String   @id @default(cuid())
+  createdAt           DateTime @default(now())
+  auctionId           String
+  riskScore           Float
+  suspiciousBidderIds String[]
+  evidence            String[]
+  status              String   @default("pending")  // pending | reviewed | dismissed | actioned
+  reviewedById        String?
+  reviewedAt          DateTime?
+
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  @@index([auctionId])
+  @@index([status, createdAt])
+}
+
+// ─── AiModelVersion (enhanced) ───────────────────────────────────────────────
+
+model AiModelVersion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  modelType String   // price | fraud | recommendations
+  version   String   // e.g. "20250525_143000"
+  mae       Float?   // for price model
+  rocAuc    Float?   // for fraud model
+  nSamples  Int?
+  isActive  Boolean  @default(true)
+
+  @@index([modelType, isActive])
+}
+
+// ─── FcmToken (enhanced) ─────────────────────────────────────────────────────
+
+model FcmToken {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  token    String  @unique
+  platform String  // ios | android | web
+  isActive Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([token])
+}
+
+// ─── SupportTicket (enhanced) ────────────────────────────────────────────────
+
+model SupportTicket {
+  id               String    @id @default(cuid())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  userId           String
+  auctionId        String?
+  status           String    @default("open")  // open | in_progress | resolved | closed
+  escalationReason String?
+  conversationJson Json      @default("[]")
+  resolvedAt       DateTime?
+  resolvedById     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([auctionId])
+}
+
+// ─── AuditLog (enhanced) ─────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  createdAt DateTime    @default(now())
+
+  action    AuditAction
+  entity    AuditEntity
+  entityId  String
+
+  actorId   String?
+  actorIp   String?
+  actorAgent String?
+
+  snapshot  Json
+
+  auctionId String?
+  userId    String?
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
+  @@index([auctionId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
