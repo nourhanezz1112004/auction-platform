@@ -1,40 +1,21 @@
-# ai-service/requirements.txt
-# Auction Platform AI Service — Merged Dependencies (v2.0 Enhanced)
-
-# ── Core ───────────────────────────────────────────────────────────────────────
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 pydantic>=2.7.0
-
-# ── ML / AI ────────────────────────────────────────────────────────────────────
 numpy<2
 scikit-learn>=1.4.0
-xgboost>=2.0.0              # Main model (faster + better than GBM)
+xgboost>=2.0.0
 joblib>=1.4.0
-sentence-transformers>=2.7.0  # Semantic search embeddings
-torch>=2.2.0,<3.0.0           # Required by sentence-transformers (CPU build is fine)
-networkx>=3.3                 # Shill-ring graph detection
-
-# ── Database ───────────────────────────────────────────────────────────────────
-asyncpg>=0.29.0              # async PostgreSQL — for seller_insights + momentum live queries
+sentence-transformers>=2.7.0
+networkx>=3.3
+asyncpg>=0.29.0
 psycopg2-binary>=2.9.9
 pgvector>=0.2.5
 python-dateutil>=2.9.0
-
-# ── HTTP / Claude API ──────────────────────────────────────────────────────────
 httpx>=0.27.0
-anthropic>=0.30.0             # Official SDK (replaces raw httpx calls to Claude)
-
-# ── Data ───────────────────────────────────────────────────────────────────────
+anthropic>=0.30.0
 pandas>=2.2.0
-
-# ── Image processing ───────────────────────────────────────────────────────────
 Pillow>=10.3.0
-
-# ── Monitoring ─────────────────────────────────────────────────────────────────
 sentry-sdk[fastapi]>=2.0.0
 python-dotenv>=1.0.1
-
-# ── Testing ───────────────────────────────────────────────────────────────────
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
