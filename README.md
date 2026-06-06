@@ -1,142 +1,190 @@
-# Auction Platform — Merged Project (v2.0 Enhanced)
+# BidSpace (مزاد) 🏺✨
+### MENA's AI-Powered Real-Time Auction Sanctuary for Rare Collectibles & Antiquities
 
-This project merges the original **Auction Platform with AI** and **newww_enhanced_v2** into a single, complete, production-ready codebase.
+> *"Where rare things find their place."*
 
-## Architecture
+BidSpace is a production-grade, real-time digital auction house built for high-value items — fine watches, archival cameras, jewelry, and art. Every bid is analyzed in real-time by a custom neural AI stack, protecting buyers and sellers from fraud, shill bidding, and counterfeit listings.
+
+---
+
+## 🤖 AI Engine — 40+ Live Endpoints
+
+> The AI service runs as an independent FastAPI microservice (Python 3.11) on port 8000, with full Swagger documentation at `/docs`. All models operate in real-time during active auctions.
+
+### 🛡️ Fraud & Trust Protection
+| Capability | How it works |
+|---|---|
+| **Shill Bid Detection** `POST /fraud/score` | XGBoost model analyzes bid velocity, timing gaps, and user history to score each bid 0–1 for fraud probability |
+| **Shill Network Graph** `GET /fraud/shill-network/{id}` | Maps bidder relationships to detect coordinated fraud rings using graph analysis |
+| **Anti-Bot Shield** `POST /ai/anti-bot` | Detects automated bidding scripts via behavioral fingerprinting before each bid attempt |
+| **Counterfeit Check** `POST /listing-guard/counterfeit-check` | Image + text analysis flags suspicious listings before they go live |
+| **Duplicate Detection** `POST /listing-guard/duplicate-check` | Vector similarity search catches relisted or reposted items |
+
+### 💰 Pricing Intelligence
+| Capability | How it works |
+|---|---|
+| **Price Prediction** `POST /predict/price` | Regression model trained on historical auction data predicts fair market value |
+| **Reserve Suggestion** `POST /ai/reserve-suggestion` | Recommends optimal reserve price based on category, condition, and demand signals |
+| **Price Suggest (Smart Listing)** `POST /listing/price-suggest` | Auto-fills starting price when seller creates a new listing |
+| **Bid Anomaly Detection** `POST /listing/bid-anomaly` | Flags abnormal bid jumps (e.g. $500 → $50,000) in real-time |
+
+### 🔍 Search & Discovery
+| Capability | How it works |
+|---|---|
+| **Semantic Search** `POST /search/semantic` | Sentence Transformers (all-MiniLM-L6-v2) convert queries to 384-dim vectors, matched against pgvector index |
+| **Personalised Feed** `POST /feed/ranked` | Ranks active auctions per user based on bidding history and watchlist patterns |
+| **Item Recommendations** `POST /predict/recommendations` | Collaborative filtering suggests similar lots the user hasn't seen |
+| **Auto-Categorize** `POST /listing/auto-categorize` | NLP classifies new listings into the correct category automatically |
+
+### 📈 Demand & Market Intelligence
+| Capability | How it works |
+|---|---|
+| **Demand Heatmap** `GET /demand/heatmap` | Real-time category demand scoring shown as a visual heatmap on the homepage sidebar |
+| **Category Forecast** `GET /demand/category/{category}` | 7-day demand forecast per category using time-series modeling |
+| **Optimal Auction Timing** `POST /timing/optimal-end-time` | Predicts best end-time for maximum bidder engagement based on historical patterns |
+| **Forecast Demand** `POST /forecast/demand` | Forward-looking demand signal for sellers planning new listings |
+
+### 🧠 Buyer & Seller Intelligence
+| Capability | How it works |
+|---|---|
+| **Buyer Insights** `POST /insights/buyer` | Per-user spend patterns, category affinity, win rate, and budget analysis |
+| **Seller Insights** `POST /insights/seller` | Revenue trends, best-performing categories, optimal listing strategy |
+| **Reputation Score** `POST /reputation/score` | Composite trust score from bid history, win rate, and payment behavior |
+| **Buyer Propensity** `POST /propensity/score` | Likelihood-to-bid score for a specific user on a specific auction |
+| **Bulk Propensity** `POST /propensity/bulk` | Scores entire user segments for targeted notifications |
+
+### ⚡ Live Auction AI
+| Capability | How it works |
+|---|---|
+| **Bid Momentum** `GET /live/momentum/{auction_id}` | Real-time bid pace indicator (accelerating / stable / cooling) updated every few seconds |
+| **Price Forecast** `GET /live/price-forecast/{auction_id}` | Predicts final hammer price as auction progresses |
+| **Auto-Bidder Strategy** `POST /autobidder/strategy` | Recommends max bid ceiling and increment strategy for the user's budget |
+| **Should Bid Now** `POST /autobidder/should-bid` | Real-time signal: is this the right moment to place a bid? |
+| **Ending Soon Alerts** `POST /intent/ending-soon` | Notifies high-propensity buyers when their target lots are closing |
+
+### 💬 AI Support & Admin
+| Capability | How it works |
+|---|---|
+| **Support Chat** `POST /support/chat` | Claude-powered stateful customer support — injects real user + auction data from PostgreSQL per session |
+| **Dispute Analysis** `POST /dispute/analyse` | AI mediator analyzes buyer/seller dispute evidence and recommends resolution |
+| **Platform Health** `GET /admin/platform-health` | Live dashboard of model status, fallback modes, and service uptime |
+| **A/B Testing** `POST /ab/assign` | Built-in experimentation framework for testing AI feature variants |
+| **Photo Quality Score** `POST /photo/quality-score` | Scores listing image quality and flags blurry/low-res uploads |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    User Browser                      │
+│           React 19 + Vite  :5173                    │
+└───────────────────┬─────────────────────────────────┘
+                    │ REST + WebSocket
+┌───────────────────▼─────────────────────────────────┐
+│              Node.js Express API  :3000              │
+│     Prisma ORM │ Bull Queues │ Socket.io             │
+└────────┬────────────────────┬────────────────────────┘
+         │                    │
+┌────────▼───────┐   ┌────────▼────────────────────────┐
+│  PostgreSQL 15 │   │    FastAPI AI Service  :8000     │
+│  + pgvector    │   │  PyTorch │ XGBoost │ Transformers│
+└────────────────┘   └─────────────────────────────────┘
+┌─────────────────┐
+│   Redis 7        │  ← Sessions, Pub/Sub, Job Queues
+└─────────────────┘
+```
+
+---
+
+## 💻 Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite, TailwindCSS v4, Zustand, TanStack Query, Socket.io, Framer Motion, GSAP |
+| **Backend** | Node.js 20, Express, Prisma ORM, PostgreSQL 15 + pgvector, Redis 7, Bull queues, Socket.io |
+| **AI Service** | FastAPI, Python 3.11, PyTorch, Scikit-Learn, XGBoost, Sentence Transformers, asyncpg, pgvector |
+| **Infrastructure** | Docker Compose, pgvector extension, Redis pub/sub, Cloudinary, Stripe, SendGrid |
+
+---
+
+## 🚀 Setup & Installation
+
+### Prerequisites
+- Node.js v20+ • pnpm `npm install -g pnpm` • Python 3.11+ • Docker Desktop
+
+### Quickstart
+
+```bash
+# 1. Clone
+git clone https://github.com/nourhanezz1112004/auction-platform.git
+cd auction-platform
+
+# 2. Install
+pnpm install
+
+# 3. Environment
+copy backend\.env.example backend\.env
+copy ai-service\.env.example ai-service\.env
+# Edit backend/.env — set POSTGRES_PASSWORD, JWT secrets
+
+# 4. Start everything
+docker compose up --build        # Terminal 1
+cd apps/web && pnpm dev          # Terminal 2
+```
+
+### Access
+| Service | URL |
+|---|---|
+| 🌐 Frontend | http://localhost:5173 |
+| ⚙️ Backend API | http://localhost:3000 |
+| 🤖 AI Swagger Docs | http://localhost:8000/docs |
+
+---
+
+## 🔑 Test Accounts (password: `demo1234`)
+
+| Email | Role | Pre-seeded Context |
+|---|---|---|
+| `admin@bidspace.com` | Admin | Fraud dashboards, AI flag console |
+| `khalid@bidspace.com` | Bidder | High watch category engagement |
+| `farida@bidspace.com` | Bidder | Rare coins, active bids |
+| `yousef@bidspace.com` | Bidder | Fine art interactions |
+| `demo-bidder@bidspace.com` | Fraud Demo | Triggers fraud flag on Rolex ($999,999 bid) |
+
+---
+
+## 📁 Project Structure
 
 ```
 auction-platform/
-├── apps/web/                    # React frontend (Vite + TailwindCSS)
-│   └── src/components/ai/       # 25+ AI components (base + enhanced)
-├── backend/                     # Node.js + Express backend
-│   ├── src/
-│   │   ├── modules/             # Original modular routes (auth, auctions, bids...)
-│   │   ├── routes/              # Enhanced routes (listings, bids.enhanced)
-│   │   ├── middleware/          # Enhanced middleware (CSRF, rate limit, audit)
-│   │   ├── services/            # Enhanced services (audit, push, analytics)
-│   │   ├── jobs/                # Bull queues (auction timer, autobidder, winback...)
-│   │   ├── sockets/             # Enhanced socket handlers (auctionRoom)
-│   │   └── lib/                 # Shared lib (prisma, redis, jwt, aiService)
-│   └── prisma/
-│       ├── schema.prisma        # Merged schema (all models + AI models)
-│       └── migrations/          # All migrations including enhanced additions
-├── ai-service/                  # Python FastAPI AI service
-│   └── app/
-│       ├── routers/             # Original routers (anti_bot, recommender, auction_intelligence)
-│       ├── routes/              # 20 enhanced AI routes
-│       ├── models/              # ML model training
-│       ├── ml/                  # ML model files (price, fraud, anti_bot, recommender)
-│       └── services/            # model_store
-└── packages/                    # Shared TypeScript packages
-    ├── shared-types/
-    ├── shared-utils/
-    └── shared-events/
+├── apps/web/              # React 19 Frontend
+│   └── src/components/ai/ # 25+ AI-powered UI components
+├── backend/               # Node.js Express API
+│   └── src/routes/        # REST + WebSocket routes
+├── ai-service/            # Python FastAPI AI Microservice
+│   └── app/routers/       # 40+ AI endpoint handlers
+├── packages/
+│   ├── shared-types/      # TypeScript contracts
+│   ├── shared-events/     # Redis event signatures
+│   └── shared-utils/      # Shared utilities
+└── docker-compose.yml
 ```
 
-## Quick Start
+---
 
-### 1. Prerequisites
-- Node.js 18+
-- pnpm 8+
-- Python 3.11+
-- PostgreSQL 15+ with pgvector extension
-- Redis 7+
+## ✨ Platform Highlights
 
-### 2. Install dependencies
-```bash
-# Root (monorepo)
-pnpm install
+- 🛡️ **Real-time fraud protection** — every bid scored by XGBoost before acceptance
+- 🔍 **Vector semantic search** — pgvector + Sentence Transformers
+- 🤖 **Claude AI support chat** — context-aware with live DB injection
+- ⚡ **Zero-latency bidding** — Socket.io WebSockets
+- 📊 **Live demand heatmaps** — real-time category intelligence
+- 🌍 **Arabic / English** localization toggle
+- 💳 **Stripe** secure payment processing
+- 📸 **Cloudinary** image management
+- 🧪 **Built-in A/B testing** framework
 
-# AI Service
-cd ai-service && pip install -r requirements.txt
-```
+---
 
-### 3. Configure environment
-```bash
-cp .env.example .env
-# Edit .env with your values
-```
-
-### 4. Database setup
-```bash
-cd backend
-pnpm prisma migrate dev
-# OR apply manually:
-psql $DATABASE_URL < prisma/migrations/20260603000000_add_enhanced_features/migration.sql
-pnpm prisma generate
-pnpm seed
-```
-
-### 5. Run development servers
-```bash
-# All services via turbo
-pnpm dev
-
-# Or individually:
-cd backend && pnpm dev          # :3000
-cd apps/web && pnpm dev         # :5173
-cd ai-service && uvicorn app.main:app --reload --port 8000
-```
-
-## What's New (Enhanced Features)
-
-### Backend
-- **Audit Log**: Immutable event trail for every bid, payment, and auction action
-- **CSRF Protection**: Double-submit cookie pattern for all state-changing routes
-- **Redis Rate Limiting**: Per-user bid rate limiting (5 bids/2s), auth limiter (10/15min)
-- **Autobidder**: Strategy-based automatic bidding (conservative/aggressive/sniper/value)
-- **Shill Alert Detection**: Nightly graph analysis to catch shill bidding rings
-- **Winback Campaigns**: Nightly propensity scoring + personalized re-engagement
-- **Push Notifications**: FCM-based iOS/Android/Web push via Firebase Admin
-- **Post-Auction Emails**: Winner notifications, seller recaps, dispute alerts
-- **Enhanced Socket Room**: Redis-backed auction room with reconnect state recovery
-- **Support Tickets**: AI-powered customer support chat with escalation
-
-### AI Service (35+ endpoints)
-- `/predict/price` — XGBoost price prediction
-- `/fraud/score` — Ensemble fraud detection  
-- `/fraud/shill-network/:id` — Graph-based shill ring detection
-- `/autobidder/strategy` — Optimal bidding strategy
-- `/insights/seller/:id` — Seller performance analytics
-- `/insights/buyer/:id` — Buyer behaviour insights
-- `/search/semantic` — pgvector semantic search
-- `/demand/heatmap` — Category demand heatmap
-- `/timing/optimal-end-time` — Best time to end auction
-- `/support/chat` — AI customer support (Claude)
-- `/dispute/analyse` — Dispute analysis and resolution
-- `/relist/optimise` — Relist optimization suggestions
-- `/emails/winner` — Personalized winner emails
-- `/forecast/demand` — 7-day demand forecast
-- And 20+ more...
-
-### Frontend AI Components
-All original components plus:
-- `AuctionRoom` — Full live auction experience with AI overlays
-- `SellerDashboard` — Complete seller analytics dashboard
-- `AdminDashboard` — Platform-wide admin insights
-- `AdminDisputePanel` — Dispute management UI
-- `BuyerInsights` — Buyer behavior analytics
-- `CreateListing` — AI-assisted listing creation
-- `SemanticSearch` — Natural language search
-- `DemandForecast` — 7-day demand visualization
-- `LiveAuctionAI` — Real-time AI auction assistant
-- `AutobidPanel` — Autobidder configuration UI
-- `NotificationBell` — Real-time notification center
-- `RelistOptimiser` — Relist suggestions UI
-
-## API Endpoints
-
-| Service    | Port | Base Path | Description |
-|-----------|------|-----------|-------------|
-| Backend   | 3000 | `/`       | Main REST API + WebSocket |
-| Frontend  | 5173 | `/`       | React SPA |
-| AI Service| 8000 | `/docs`   | FastAPI with Swagger UI |
-
-## Environment Variables
-
-See `.env.example` for complete list. Key variables:
-- `DATABASE_URL` — PostgreSQL connection string
-- `REDIS_URL` — Redis connection string  
-- `ANTHROPIC_API_KEY` — For Claude-powered AI features
-- `STRIPE_SECRET_KEY` — Payments
-- `AI_SERVICE_URL` — AI service URL (default: http://localhost:8000)
+*Production-grade graduation project — MENA's next-generation rare auction sanctuary.*
